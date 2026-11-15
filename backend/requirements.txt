@@ -1,0 +1,10 @@
+# Dependências base do backend TechExpert (versões definitivas a serem fixadas na Fase 3)
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic
+pyswip
+pytest
+httpx
+
