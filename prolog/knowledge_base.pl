@@ -10,6 +10,13 @@
 % - Fornecer explicabilidade completa por regra, evidências e justificativa (RF05)
 % - Detectar sintomas contraditórios (Seção 12)
 % - Sugerir perguntas complementares quando houver dados insuficientes (RF09 / Seção 17)
+% - Serializar diagnósticos e catálogo em JSON UTF-8 para o backend Python
+
+:- if(exists_source(library(json))).
+:- use_module(library(json)).
+:- else.
+:- use_module(library(http/json)).
+:- endif.
 
 :- multifile
     versao_base_regras/1,
@@ -258,3 +265,146 @@ diagnosticar(SintomasInformados, Resultado) :-
         SintomasComplementares,
         Contradicoes
     ).
+
+% ------------------------------------------------------------------------------
+% Serialização JSON UTF-8 para integração segura com o backend Python
+% ------------------------------------------------------------------------------
+passo_para_dict(
+    passo_recomendacao(Ordem, Descricao, RequerTecnico),
+    _{
+        ordem_execucao: Ordem,
+        descricao: Descricao,
+        requer_conhecimento_tecnico: RequerTecnico
+    }
+).
+
+hipotese_para_dict(
+    hipotese(
+        CausaId,
+        DescricaoCausa,
+        Dominio,
+        RecomendacaoPrincipal,
+        Recomendacoes,
+        RegraId,
+        EvidenciasUsadas,
+        Justificativa
+    ),
+    _{
+        causa: CausaId,
+        descricao_causa: DescricaoCausa,
+        dominio: Dominio,
+        recomendacao: RecomendacaoPrincipal,
+        recomendacoes: RecDicts,
+        regras_aplicadas: [RegraId],
+        explicacoes: [
+            _{
+                identificador_regra: RegraId,
+                evidencias_utilizadas: EvidenciasUsadas,
+                justificativa: Justificativa
+            }
+        ]
+    }
+) :-
+    maplist(passo_para_dict, Recomendacoes, RecDicts).
+
+complementar_para_dict(
+    sintoma_complementar(Identificador, Pergunta),
+    _{
+        identificador: Identificador,
+        pergunta: Pergunta
+    }
+).
+
+contradicao_para_dict(
+    contradicao(SintomaA, SintomaB, Motivo),
+    _{
+        sintoma_a: SintomaA,
+        sintoma_b: SintomaB,
+        motivo: Motivo
+    }
+).
+
+diagnosticar_json(SintomasInformados, JsonString) :-
+    diagnosticar(
+        SintomasInformados,
+        resultado_diagnostico(
+            StatusInferencia,
+            VersaoBase,
+            MensagemStatus,
+            Hipoteses,
+            SintomasComplementares,
+            Contradicoes
+        )
+    ),
+    maplist(hipotese_para_dict, Hipoteses, HipotesesDict),
+    maplist(complementar_para_dict, SintomasComplementares, ComplementaresDict),
+    maplist(contradicao_para_dict, Contradicoes, ContradicoesDict),
+    Dict = _{
+        status_inferencia: StatusInferencia,
+        versao_regras: VersaoBase,
+        aviso_hipotese: MensagemStatus,
+        diagnosticos: HipotesesDict,
+        sintomas_complementares: ComplementaresDict,
+        contradicoes: ContradicoesDict
+    },
+    with_output_to(
+        string(JsonString),
+        json_write_dict(current_output, Dict, [width(0)])
+    ).
+
+imprimir_diagnostico_json(SintomasInformados) :-
+    set_stream(current_output, encoding(utf8)),
+    diagnosticar_json(SintomasInformados, JsonString),
+    write(JsonString),
+    nl.
+
+catalogo_json(JsonString) :-
+    versao_vigente(VersaoBase),
+    findall(
+        _{
+            identificador: Id,
+            descricao: Descricao,
+            categoria: Categoria,
+            pergunta_complementar: Pergunta
+        },
+        (
+            sintoma(Id, Descricao, Categoria),
+            (   pergunta_complementar(Id, Pergunta)
+            ->  true
+            ;   Pergunta = ""
+            )
+        ),
+        SintomasDict
+    ),
+    findall(
+        _{
+            identificador: CausaId,
+            descricao: Descricao,
+            categoria: Categoria,
+            regras: Regras
+        },
+        (
+            causa(CausaId, Descricao, Categoria),
+            findall(RegraId, premissas_regra(RegraId, CausaId, _), Regras)
+        ),
+        CausasDict
+    ),
+    length(SintomasDict, TotalSintomas),
+    length(CausasDict, TotalDiagnosticos),
+    Dict = _{
+        versao_regras: VersaoBase,
+        total_sintomas: TotalSintomas,
+        total_diagnosticos: TotalDiagnosticos,
+        sintomas: SintomasDict,
+        diagnosticos: CausasDict
+    },
+    with_output_to(
+        string(JsonString),
+        json_write_dict(current_output, Dict, [width(0)])
+    ).
+
+imprimir_catalogo_json :-
+    set_stream(current_output, encoding(utf8)),
+    catalogo_json(JsonString),
+    write(JsonString),
+    nl.
