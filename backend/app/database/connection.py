@@ -4,9 +4,10 @@ from collections.abc import Generator
 import importlib.util
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
@@ -28,6 +29,15 @@ def _resolve_database_url() -> str:
     return raw_url
 
 
+def _build_connect_args(database_url: str) -> dict[str, Any]:
+    """Define parâmetros de timeout/thread adequados ao dialeto do banco."""
+    if database_url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    if database_url.startswith("postgresql"):
+        return {"connect_timeout": 3}
+    return {}
+
+
 def resolve_prolog_kb_path() -> Path:
     """Resolve o caminho absoluto do arquivo principal da base Prolog."""
     configured = os.getenv("PROLOG_KB_PATH", DEFAULT_PROLOG_KB_PATH).strip()
@@ -37,11 +47,27 @@ def resolve_prolog_kb_path() -> Path:
     return kb_path
 
 
+def resolve_prolog_facts_path() -> Path:
+    """Resolve o caminho absoluto do arquivo de fatos/sintomas Prolog."""
+    return (resolve_prolog_kb_path().parent / "facts" / "symptoms.pl").resolve()
+
+
 DATABASE_URL = _resolve_database_url()
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args=_build_connect_args(DATABASE_URL),
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def init_db(target_engine: Engine | None = None) -> None:
+    """Importa os modelos ORM e cria todas as tabelas no banco configurado."""
+    import backend.app.database.models  # noqa: F401
+
+    Base.metadata.create_all(bind=target_engine or engine)
 
 
 def get_db() -> Generator[Session, None, None]:

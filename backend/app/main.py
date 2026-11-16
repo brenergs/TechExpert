@@ -1,15 +1,21 @@
 """Ponto de entrada da API REST do TechExpert (FastAPI)."""
 
+from contextlib import asynccontextmanager
+import logging
 import os
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.database.connection import (
     check_database_connection,
     resolve_prolog_kb_path,
 )
+from backend.app.database.seed import initialize_and_seed_database
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
 
@@ -20,6 +26,20 @@ def _get_cors_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Inicializa esquema e catálogo de sintomas quando o banco está acessível."""
+    try:
+        total = initialize_and_seed_database()
+        logger.info("Banco inicializado com %s sintomas sincronizados.", total)
+    except SQLAlchemyError as exc:
+        logger.warning(
+            "Inicialização automática do banco adiada (banco indisponível no startup): %s",
+            exc,
+        )
+    yield
+
+
 app = FastAPI(
     title="TechExpert API",
     version="1.0.0",
@@ -27,6 +47,7 @@ app = FastAPI(
         "API REST do Sistema Especialista TechExpert para Diagnóstico de "
         "Problemas Computacionais."
     ),
+    lifespan=lifespan,
 )
 
 app.add_middleware(
