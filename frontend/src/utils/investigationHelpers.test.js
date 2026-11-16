@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildSymptomDescriptionMap,
   filterSymptoms,
   groupSymptomsByCategory,
   hasSensitivePasswordPattern,
   mergeSymptoms,
+  normalizeHypothesis,
   removeSymptom,
+  summarizeDiagnosisResult,
 } from "./investigationHelpers.js";
 
 const SAMPLE_SYMPTOMS = [
@@ -50,3 +53,67 @@ test("mergeSymptoms e removeSymptom mantêm integridade sem duplicatas", () => {
   assert.deepEqual(afterRemove, ["computador_ligado"]);
 });
 
+test("normalizeHypothesis ordena recomendações, detecta risco técnico e mapeia evidências", () => {
+  const symptomMap = buildSymptomDescriptionMap([
+    ...SAMPLE_SYMPTOMS,
+    { identificador: "computador_ligado", descricao: "Computador liga e permanece energizado", categoria: "inicializacao" },
+  ]);
+
+  const normalized = normalizeHypothesis(
+    {
+      causa: "possivel_falha_ram",
+      descricao_causa: "Possível falha nos módulos de RAM",
+      dominio: "video",
+      recomendacao: "Investigue os módulos de memória RAM",
+      recomendacoes: [
+        { ordem_execucao: 2, descricao: "Reencaixar módulos", requer_conhecimento_tecnico: true },
+        { ordem_execucao: 1, descricao: "Desligar da tomada", requer_conhecimento_tecnico: false },
+      ],
+      regras_aplicadas: ["regra_video_02"],
+      explicacoes: [
+        {
+          identificador_regra: "regra_video_02",
+          evidencias_utilizadas: ["sem_imagem", "computador_ligado"],
+          justificativa: "Sem vídeo com computador energizado.",
+        },
+      ],
+    },
+    symptomMap
+  );
+
+  assert.equal(normalized.dominio_rotulo, "Vídeo e Monitor");
+  assert.equal(normalized.requer_alerta_tecnico, true);
+  assert.deepEqual(
+    normalized.recomendacoes.map((r) => r.ordem_execucao),
+    [1, 2]
+  );
+  assert.equal(
+    normalized.explicacoes[0].evidencias_utilizadas[0].descricao,
+    "Monitor sem imagem na tela"
+  );
+});
+
+test("summarizeDiagnosisResult identifica múltiplas hipóteses e estado inconclusivo", () => {
+  const multi = summarizeDiagnosisResult({
+    status: "diagnosticada",
+    versao_regras: "1.0.0",
+    aviso_hipotese: "Hipóteses prováveis",
+    diagnosticos: [{ causa: "problema_monitor" }, { causa: "possivel_falha_ram" }],
+    sintomas_complementares: [],
+    contradicoes: [],
+  });
+  assert.equal(multi.isDiagnosticada, true);
+  assert.equal(multi.hasMultipleHypotheses, true);
+  assert.equal(multi.totalHipoteses, 2);
+
+  const insuf = summarizeDiagnosisResult({
+    status: "inconclusiva",
+    versao_regras: "1.0.0",
+    diagnosticos: [],
+    sintomas_complementares: [{ identificador: "monitor_desligado", pergunta: "Monitor apagado?" }],
+    contradicoes: [],
+  });
+  assert.equal(insuf.isDiagnosticada, false);
+  assert.equal(insuf.isInconclusiva, true);
+  assert.equal(insuf.hasComplementary, true);
+});

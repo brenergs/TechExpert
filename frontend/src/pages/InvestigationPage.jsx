@@ -1,10 +1,12 @@
 import { useState } from "react";
 import ComplementaryQuestionsPanel from "../components/ComplementaryQuestionsPanel.jsx";
-import { AlertTriangleIcon, CheckCircleIcon } from "../components/Icons.jsx";
+import DiagnosisResultsPanel from "../components/DiagnosisResultsPanel.jsx";
+import { AlertTriangleIcon } from "../components/Icons.jsx";
 import NewConsultationForm from "../components/NewConsultationForm.jsx";
 import SymptomSelector from "../components/SymptomSelector.jsx";
 import {
   criarConsulta,
+  encerrarConsulta,
   executarDiagnostico,
   registrarSintomas,
 } from "../services/api.js";
@@ -123,6 +125,21 @@ export default function InvestigationPage({ catalog }) {
     setDiagnosticResult(null);
   };
 
+  const handleCloseConsultation = async () => {
+    if (!consultaAtual || isClosed) return;
+
+    setLoadingAction("close");
+    setErrorMessage("");
+    try {
+      const closed = await encerrarConsulta(consultaAtual.id);
+      setConsultaAtual(closed);
+    } catch (err) {
+      setErrorMessage(err.message || "Falha ao encerrar consulta.");
+    } finally {
+      setLoadingAction("");
+    }
+  };
+
   return (
     <div className="page-stack">
       <NewConsultationForm
@@ -160,25 +177,13 @@ export default function InvestigationPage({ catalog }) {
         onSubmitComplementary={handleSubmitComplementary}
       />
 
-      {diagnosticResult && diagnosticResult.diagnosticos?.length > 0 && (
-        <section className="card" aria-label="Resumo preliminar de hipóteses">
-          <div className="banner banner-info">
-            <CheckCircleIcon size={18} />
-            <div>
-              <strong>
-                {diagnosticResult.diagnosticos.length} hipótese(s) técnica(s)
-                identificada(s):
-              </strong>{" "}
-              {diagnosticResult.diagnosticos
-                .map((d) => `${d.causa} (${d.regras_aplicadas.join(", ")})`)
-                .join(" | ")}
-              . Os cards completos de recomendações ordenadas e painel de
-              explicabilidade serão detalhados no Passo 4.3.
-            </div>
-          </div>
-        </section>
-      )}
+      <DiagnosisResultsPanel
+        diagnosticResult={diagnosticResult}
+        catalogSymptoms={sintomas}
+        consultaStatus={consultaAtual?.status}
+        onCloseConsultation={consultaAtual ? handleCloseConsultation : null}
+        closingConsultation={loadingAction === "close"}
+      />
     </div>
   );
 }
-

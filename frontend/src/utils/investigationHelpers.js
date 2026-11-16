@@ -1,6 +1,6 @@
 /**
- * Funções puras auxiliares para categorização, filtragem, validação preventiva
- * e manipulação de sintomas no fluxo de investigação (Passos 4.2+).
+ * Funções puras auxiliares para categorização, filtragem, validação preventiva,
+ * manipulação de sintomas e normalização de resultados diagnósticos (Passos 4.2–4.4).
  */
 
 export const CATEGORY_LABELS = {
@@ -116,3 +116,118 @@ export function removeSymptom(currentList = [], target) {
   return currentList.filter((item) => item !== target);
 }
 
+/**
+ * Constrói mapa identificador -> descrição a partir de uma lista de sintomas.
+ */
+export function buildSymptomDescriptionMap(symptoms = []) {
+  const map = new Map();
+  if (!Array.isArray(symptoms)) {
+    return map;
+  }
+  for (const item of symptoms) {
+    if (item && item.identificador) {
+      map.set(item.identificador, item.descricao || item.identificador);
+    }
+  }
+  return map;
+}
+
+/**
+ * Normaliza uma hipótese diagnóstica ordenando recomendações, identificando
+ * procedimentos técnicos e enriquecendo evidências com descrições legíveis.
+ */
+export function normalizeHypothesis(item, symptomMap = new Map()) {
+  const rawRecs = Array.isArray(item?.recomendacoes) ? item.recomendacoes : [];
+  const recomendacoes =
+    rawRecs.length > 0
+      ? [...rawRecs]
+          .sort((a, b) => (a.ordem_execucao || 0) - (b.ordem_execucao || 0))
+          .map((rec, index) => ({
+            ordem_execucao: rec.ordem_execucao ?? index + 1,
+            descricao: rec.descricao || "",
+            requer_conhecimento_tecnico: Boolean(rec.requer_conhecimento_tecnico),
+          }))
+      : item?.recomendacao
+      ? [
+          {
+            ordem_execucao: 1,
+            descricao: item.recomendacao,
+            requer_conhecimento_tecnico: false,
+          },
+        ]
+      : [];
+
+  const regrasAplicadas = Array.isArray(item?.regras_aplicadas)
+    ? item.regras_aplicadas
+    : [];
+
+  const rawExplicacoes = Array.isArray(item?.explicacoes) ? item.explicacoes : [];
+  const explicacoes = rawExplicacoes.map((exp) => {
+    const evidencias = Array.isArray(exp.evidencias_utilizadas)
+      ? exp.evidencias_utilizadas
+      : [];
+    return {
+      identificador_regra: exp.identificador_regra || "",
+      justificativa: exp.justificativa || "",
+      evidencias_utilizadas: evidencias.map((ident) => ({
+        identificador: ident,
+        descricao:
+          symptomMap instanceof Map
+            ? symptomMap.get(ident) || ident
+            : symptomMap?.[ident] || ident,
+      })),
+    };
+  });
+
+  const requerAlertaTecnico = recomendacoes.some(
+    (rec) => rec.requer_conhecimento_tecnico
+  );
+
+  return {
+    causa: item?.causa || "",
+    descricao_causa: item?.descricao_causa || item?.causa || "",
+    dominio: item?.dominio || null,
+    dominio_rotulo: item?.dominio
+      ? CATEGORY_LABELS[item.dominio] || item.dominio
+      : null,
+    nivel_confianca: item?.nivel_confianca ?? null,
+    recomendacao_principal: item?.recomendacao || recomendacoes[0]?.descricao || "",
+    recomendacoes,
+    regras_aplicadas: regrasAplicadas,
+    explicacoes,
+    requer_alerta_tecnico: requerAlertaTecnico,
+  };
+}
+
+/**
+ * Resume o estado consolidado de um diagnóstico para renderização consistente na UI.
+ */
+export function summarizeDiagnosisResult(result) {
+  if (!result || typeof result !== "object") {
+    return null;
+  }
+
+  const diagnosticos = Array.isArray(result.diagnosticos) ? result.diagnosticos : [];
+  const complementares = Array.isArray(result.sintomas_complementares)
+    ? result.sintomas_complementares
+    : [];
+  const contradicoes = Array.isArray(result.contradicoes) ? result.contradicoes : [];
+
+  const isInconclusiva =
+    result.status === "inconclusiva" ||
+    (diagnosticos.length === 0 && (complementares.length > 0 || contradicoes.length > 0));
+
+  return {
+    status: result.status || (diagnosticos.length > 0 ? "diagnosticada" : "inconclusiva"),
+    isDiagnosticada: diagnosticos.length > 0,
+    isInconclusiva,
+    hasMultipleHypotheses: diagnosticos.length > 1,
+    hasContradictions: contradicoes.length > 0,
+    hasComplementary: complementares.length > 0,
+    totalHipoteses: diagnosticos.length,
+    versaoRegras: result.versao_regras || null,
+    avisoHipotese:
+      result.aviso_hipotese ||
+      "Os resultados representam hipóteses técnicas prováveis e não substituem avaliação presencial especializada.",
+  };
+}
