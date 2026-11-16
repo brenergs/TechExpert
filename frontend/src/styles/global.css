@@ -192,6 +192,12 @@ select {
   gap: 20px;
 }
 
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -287,26 +293,234 @@ select {
   color: #ffffff;
 }
 
-.grid-cards {
+.consultation-active-header,
+.section-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.consultation-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.textarea-input,
+.text-input,
+.select-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.textarea-input:focus,
+.text-input:focus,
+.select-input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.field-hint {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.symptom-toolbar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr minmax(220px, 280px);
+  gap: 12px;
   margin-top: 16px;
 }
 
-.category-tile {
+@media (max-width: 720px) {
+  .symptom-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 38px;
+}
+
+.category-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.category-group-card {
   background: var(--bg-muted);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.category-tile-header {
+.category-group-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
-  font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.category-group-header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.symptom-list,
+.complementary-list,
+.contradiction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.complementary-list,
+.contradiction-list {
+  margin-top: 14px;
+}
+
+.symptom-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.symptom-option:hover {
+  border-color: var(--accent);
+}
+
+.symptom-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.symptom-option input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.symptom-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.symptom-desc {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.symptom-code {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.diagnosis-action-bar {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.selected-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.chip-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  background: var(--accent-soft);
+  color: #1e3a8a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contradiction-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  background: #fffafa;
+}
+
+.contradictions-block + form {
+  margin-top: 16px;
 }
 
 .app-footer {
@@ -317,4 +531,3 @@ select {
   border-top: 1px solid var(--border-color);
   background: var(--bg-surface);
 }
-

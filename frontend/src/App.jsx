@@ -1,34 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Activity,
-  AlertTriangle,
-  Cpu,
-  Database,
-  History,
-  RefreshCw,
-  ShieldCheck,
-  Stethoscope,
-} from "lucide-react";
+  ActivityIcon,
+  AlertTriangleIcon,
+  CpuIcon,
+  DatabaseIcon,
+  HistoryIcon,
+  RefreshCwIcon,
+  ShieldCheckIcon,
+  StethoscopeIcon,
+} from "./components/Icons.jsx";
+import InvestigationPage from "./pages/InvestigationPage.jsx";
 import {
   listarDiagnosticosESintomas,
   verificarSaude,
 } from "./services/api.js";
 
 const TABS = [
-  { id: "nova", label: "Nova Investigação", icon: Stethoscope },
-  { id: "historico", label: "Histórico", icon: History },
-  { id: "admin", label: "Administração", icon: ShieldCheck },
+  { id: "nova", label: "Nova Investigação", icon: StethoscopeIcon },
+  { id: "historico", label: "Histórico", icon: HistoryIcon },
+  { id: "admin", label: "Administração", icon: ShieldCheckIcon },
 ];
-
-const CATEGORY_LABELS = {
-  inicializacao: "Inicialização e Energia",
-  video: "Vídeo e Monitor",
-  memoria_ram: "Memória RAM e Estabilidade",
-  desempenho: "Desempenho e Sistema",
-  armazenamento: "Armazenamento (HD / SSD)",
-  rede: "Rede, Internet e DNS",
-  temperatura: "Temperatura e Refrigeração",
-};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("nova");
@@ -69,19 +60,6 @@ export default function App() {
     carregarStatusECatalogo();
   }, [carregarStatusECatalogo]);
 
-  const categoriasAgrupadas = useMemo(() => {
-    if (!catalog?.sintomas) return [];
-    const counts = new Map();
-    for (const item of catalog.sintomas) {
-      counts.set(item.categoria, (counts.get(item.categoria) || 0) + 1);
-    }
-    return Array.from(counts.entries()).map(([categoria, quantidade]) => ({
-      categoria,
-      rotulo: CATEGORY_LABELS[categoria] || categoria,
-      quantidade,
-    }));
-  }, [catalog]);
-
   const renderStatusPills = () => {
     if (loadingBootstrap) {
       return <span className="pill pill-neutral">Verificando serviços...</span>;
@@ -89,7 +67,7 @@ export default function App() {
     if (!health) {
       return (
         <span className="pill pill-danger">
-          <AlertTriangle size={14} /> API offline
+          <AlertTriangleIcon size={14} /> API offline
         </span>
       );
     }
@@ -100,7 +78,7 @@ export default function App() {
             health.status === "ok" ? "pill-success" : "pill-warning"
           }`}
         >
-          <Activity size={14} />
+          <ActivityIcon size={14} />
           API: {health.status === "ok" ? "Operacional" : "Degradada"}
         </span>
         <span
@@ -108,7 +86,7 @@ export default function App() {
             health.database === "connected" ? "pill-success" : "pill-warning"
           }`}
         >
-          <Database size={14} />
+          <DatabaseIcon size={14} />
           PostgreSQL: {health.database === "connected" ? "Conectado" : "Desconectado"}
         </span>
         <span
@@ -116,7 +94,7 @@ export default function App() {
             health.prolog_kb === "found" ? "pill-success" : "pill-danger"
           }`}
         >
-          <Cpu size={14} />
+          <CpuIcon size={14} />
           Motor Prolog:{" "}
           {health.versao_regras ? `v${health.versao_regras}` : health.prolog_kb}
         </span>
@@ -130,7 +108,7 @@ export default function App() {
         <div className="app-header-inner">
           <div className="brand">
             <div className="brand-icon" aria-hidden="true">
-              <Cpu size={22} />
+              <CpuIcon size={22} />
             </div>
             <div>
               <h1 className="brand-title">TechExpert</h1>
@@ -168,7 +146,7 @@ export default function App() {
             onClick={carregarStatusECatalogo}
             disabled={loadingBootstrap}
           >
-            <RefreshCw size={15} />
+            <RefreshCwIcon size={15} />
             Atualizar conexão
           </button>
         </div>
@@ -176,7 +154,7 @@ export default function App() {
 
       <main className="main-content">
         <div className="banner banner-info">
-          <ShieldCheck size={18} />
+          <ShieldCheckIcon size={18} />
           <div>
             <strong>Orientação técnica e privacidade:</strong> o TechExpert
             apresenta <em>hipóteses técnicas possíveis</em> com suas respectivas
@@ -186,47 +164,19 @@ export default function App() {
 
         {bootstrapError && (
           <div className="banner banner-warning" role="alert">
-            <AlertTriangle size={18} />
+            <AlertTriangleIcon size={18} />
             <div>
               <strong>Conexão com o catálogo pendente:</strong> {bootstrapError}
             </div>
           </div>
         )}
 
-        {activeTab === "nova" && (
-          <section className="card">
-            <h2 className="card-title">
-              <Stethoscope size={20} />
-              Base de Conhecimento Carregada
-            </h2>
-            <p className="card-subtitle">
-              {catalog
-                ? `Catálogo pronto com ${catalog.total_sintomas} sintomas e ${catalog.total_diagnosticos} hipóteses diagnósticas (versão ${catalog.versao_regras}).`
-                : "Inicie o backend FastAPI para carregar os sintomas categorizados e iniciar investigações."}
-            </p>
-
-            {categoriasAgrupadas.length > 0 && (
-              <div className="grid-cards">
-                {categoriasAgrupadas.map((item) => (
-                  <div key={item.categoria} className="category-tile">
-                    <div className="category-tile-header">
-                      <span>{item.rotulo}</span>
-                      <span className="pill pill-neutral">{item.quantidade}</span>
-                    </div>
-                    <small className="card-subtitle">
-                      Categoria: <code>{item.categoria}</code>
-                    </small>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+        {activeTab === "nova" && <InvestigationPage catalog={catalog} />}
 
         {activeTab === "historico" && (
           <section className="card">
             <h2 className="card-title">
-              <History size={20} />
+              <HistoryIcon size={20} />
               Histórico de Consultas
             </h2>
             <p className="card-subtitle">
@@ -239,7 +189,7 @@ export default function App() {
         {activeTab === "admin" && (
           <section className="card">
             <h2 className="card-title">
-              <ShieldCheck size={20} />
+              <ShieldCheckIcon size={20} />
               Administração da Base de Conhecimento (RF08)
             </h2>
             <p className="card-subtitle">

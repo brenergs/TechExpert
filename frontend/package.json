@@ -8,10 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:api": "node --test src/services/api.test.js"
+    "test:api": "node --test src/services/api.test.js src/utils/investigationHelpers.test.js"
   },
   "dependencies": {
-    "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
