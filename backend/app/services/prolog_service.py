@@ -6,6 +6,7 @@ transparente para o executável oficial `swipl` com serialização JSON UTF-8 ca
 o ambiente Windows bloqueie a inicialização embarcada da libswipl.dll.
 """
 
+import faulthandler
 import json
 import logging
 from pathlib import Path
@@ -72,6 +73,9 @@ class PrologService:
                 f"Base de conhecimento Prolog não encontrada em: {self._kb_path}"
             )
 
+        was_faulthandler_enabled = faulthandler.is_enabled()
+        if was_faulthandler_enabled:
+            faulthandler.disable()
         try:
             from pyswip import Prolog
 
@@ -87,6 +91,9 @@ class PrologService:
                 "PySwip indisponível neste ambiente (%s). Ativando fallback via swipl CLI.",
                 exc,
             )
+        finally:
+            if was_faulthandler_enabled:
+                faulthandler.enable()
 
         swipl_bin = self._find_swipl_binary()
         if not swipl_bin:
