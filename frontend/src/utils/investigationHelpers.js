@@ -1,6 +1,6 @@
 /**
  * Funções puras auxiliares para categorização, filtragem, validação preventiva,
- * manipulação de sintomas e normalização de resultados diagnósticos (Passos 4.2–4.4).
+ * manipulação de sintomas, normalização de resultados diagnósticos e administração.
  */
 
 export const CATEGORY_LABELS = {
@@ -23,7 +23,78 @@ const CATEGORY_ORDER = [
   "temperatura",
 ];
 
+const ATOM_IDENTIFIER_RE = /^[a-z][a-z0-9_]{1,63}$/;
 const SENSITIVE_PATTERN_RE = /\b(senha|password|pin|token|secret)\s*[:=]/i;
+
+const STATUS_METADATA = {
+  aberta: { label: "Aberta", className: "pill-neutral", isClosed: false },
+  em_investigacao: { label: "Em investigação", className: "pill-neutral", isClosed: false },
+  diagnosticada: { label: "Diagnosticada", className: "pill-success", isClosed: false },
+  inconclusiva: { label: "Inconclusiva", className: "pill-warning", isClosed: false },
+  encerrada: { label: "Encerrada", className: "pill-danger", isClosed: true },
+};
+
+/**
+ * Formata status de consulta para rótulo legível, estilo visual e estado terminal.
+ */
+export function formatConsultationStatus(status) {
+  if (status && STATUS_METADATA[status]) {
+    return STATUS_METADATA[status];
+  }
+  return {
+    label: String(status || "Desconhecido"),
+    className: "pill-neutral",
+    isClosed: false,
+  };
+}
+
+/**
+ * Formata timestamps ISO para exibição em pt-BR.
+ */
+export function formatDateTimePtBr(isoValue) {
+  if (!isoValue) return "Agora";
+  const parsed = new Date(isoValue);
+  if (Number.isNaN(parsed.getTime())) return String(isoValue);
+  return parsed.toLocaleString("pt-BR");
+}
+
+/**
+ * Valida payload administrativo de atualização/criação de sintoma (RF08).
+ */
+export function validateAdminSymptomPayload({
+  identificador = "",
+  descricao = "",
+  categoria = "",
+} = {}) {
+  const cleanId = String(identificador).trim();
+  const cleanDesc = String(descricao).trim();
+  const cleanCat = String(categoria).trim();
+  const errors = [];
+
+  if (!ATOM_IDENTIFIER_RE.test(cleanId)) {
+    errors.push(
+      "Identificador inválido: use snake_case ASCII (2 a 64 caracteres, letras minúsculas, números e '_')."
+    );
+  }
+  if (!ATOM_IDENTIFIER_RE.test(cleanCat)) {
+    errors.push(
+      "Categoria inválida: use identificador snake_case ASCII (ex.: video, rede)."
+    );
+  }
+  if (cleanDesc.length < 3 || cleanDesc.length > 255) {
+    errors.push("Descrição deve ter entre 3 e 255 caracteres.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    cleaned: {
+      identificador: cleanId,
+      descricao: cleanDesc,
+      categoria: cleanCat,
+    },
+  };
+}
 
 /**
  * Verifica preventivamente se um texto parece conter senha ou segredo (Seção 17).

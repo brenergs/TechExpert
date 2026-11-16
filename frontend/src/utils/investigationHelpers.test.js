@@ -3,12 +3,14 @@ import test from "node:test";
 import {
   buildSymptomDescriptionMap,
   filterSymptoms,
+  formatConsultationStatus,
   groupSymptomsByCategory,
   hasSensitivePasswordPattern,
   mergeSymptoms,
   normalizeHypothesis,
   removeSymptom,
   summarizeDiagnosisResult,
+  validateAdminSymptomPayload,
 } from "./investigationHelpers.js";
 
 const SAMPLE_SYMPTOMS = [
@@ -116,4 +118,35 @@ test("summarizeDiagnosisResult identifica múltiplas hipóteses e estado inconcl
   assert.equal(insuf.isDiagnosticada, false);
   assert.equal(insuf.isInconclusiva, true);
   assert.equal(insuf.hasComplementary, true);
+});
+
+test("formatConsultationStatus mapeia estados e encerramento", () => {
+  assert.deepEqual(formatConsultationStatus("diagnosticada"), {
+    label: "Diagnosticada",
+    className: "pill-success",
+    isClosed: false,
+  });
+  assert.deepEqual(formatConsultationStatus("encerrada"), {
+    label: "Encerrada",
+    className: "pill-danger",
+    isClosed: true,
+  });
+});
+
+test("validateAdminSymptomPayload valida identificador, categoria e descrição", () => {
+  const ok = validateAdminSymptomPayload({
+    identificador: "novo_sintoma_usb",
+    descricao: "Porta USB não reconhece dispositivos",
+    categoria: "hardware",
+  });
+  assert.equal(ok.valid, true);
+  assert.equal(ok.errors.length, 0);
+
+  const bad = validateAdminSymptomPayload({
+    identificador: "Invalido!",
+    descricao: "Oi",
+    categoria: "123",
+  });
+  assert.equal(bad.valid, false);
+  assert.equal(bad.errors.length, 3);
 });

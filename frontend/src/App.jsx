@@ -9,6 +9,8 @@ import {
   ShieldCheckIcon,
   StethoscopeIcon,
 } from "./components/Icons.jsx";
+import AdminKnowledgePage from "./pages/AdminKnowledgePage.jsx";
+import HistoryPage from "./pages/HistoryPage.jsx";
 import InvestigationPage from "./pages/InvestigationPage.jsx";
 import {
   listarDiagnosticosESintomas,
@@ -173,30 +175,10 @@ export default function App() {
 
         {activeTab === "nova" && <InvestigationPage catalog={catalog} />}
 
-        {activeTab === "historico" && (
-          <section className="card">
-            <h2 className="card-title">
-              <HistoryIcon size={20} />
-              Histórico de Consultas
-            </h2>
-            <p className="card-subtitle">
-              A visualização detalhada e o encerramento de consultas do histórico
-              serão integrados nesta aba no Passo 4.4.
-            </p>
-          </section>
-        )}
+        {activeTab === "historico" && <HistoryPage catalog={catalog} />}
 
         {activeTab === "admin" && (
-          <section className="card">
-            <h2 className="card-title">
-              <ShieldCheckIcon size={20} />
-              Administração da Base de Conhecimento (RF08)
-            </h2>
-            <p className="card-subtitle">
-              O painel administrativo protegido para gerenciamento e recarga da
-              base será integrado nesta aba no Passo 4.4.
-            </p>
-          </section>
+          <AdminKnowledgePage onCatalogUpdated={carregarStatusECatalogo} />
         )}
       </main>
 
