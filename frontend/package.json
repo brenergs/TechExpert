@@ -1,13 +1,14 @@
 {
   "name": "techexpert-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Interface React para o sistema especialista TechExpert",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:api": "node --test src/services/api.test.js src/utils/investigationHelpers.test.js"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -18,4 +19,3 @@
     "vite": "^5.4.0"
   }
 }
-
